@@ -10,6 +10,7 @@ import LambdaPi.Data.Context
 import Data.List (elemIndex)
 import LambdaPi.Eval
 import Data.Functor (($>))
+import LambdaPi.Data.Program
 
 type Bindings = [String]
 type Parser = Parsec String Bindings
@@ -23,9 +24,18 @@ bindName env x =
      Just i  -> Bound i
      Nothing -> Free (Global x)
 
+isKeyword :: String -> Bool
+isKeyword x = elem x keywords
 
 validIdent :: Parser String
-validIdent = many1 alphaNum
+validIdent = (:) <$> letter <*> many alphaNum >>= notKeyword
+  where
+    notKeyword :: String -> Parser String
+    notKeyword x =
+      if isKeyword x then
+        fail $ x ++ " is a reserved keyword"
+      else
+        pure x
 
 name :: Parser Name
 name = Global <$> validIdent
@@ -43,6 +53,14 @@ tryEach = choice . fmap try
 -----------
 -- TERMS --
 -----------
+
+keywords =
+  [ "forall"
+  , "fun"
+  , "def"
+  , "end"
+  , "let"
+  ]
 
 termExpr :: Parser ITerm
 termExpr =
@@ -70,7 +88,7 @@ termIdent :: Parser ITerm
 termIdent =
   tryEach
     [ char '*' $> Star
-    , getState >>= \env -> bindName env <$> many1 letter
+    , getState >>= \env -> bindName env <$> validIdent
     ]
 
 binder :: Parser CTerm
@@ -78,11 +96,12 @@ binder = do
   string "("
   spaces
   x <- validIdent
-  modifyState (x:)
   spaces
   string ":"
   spaces
   t <- cterm
+  -- x can't appear in t (which is the type of x)
+  modifyState (x:)
   spaces
   string ")"
   pure t
@@ -92,7 +111,7 @@ forallExpr = do
   string "forall "
   spaces
   env <- getState
-  xs <- reverse <$> many1 binder <* spaces
+  xs <- reverse <$> many1 (binder <* spaces)
   string ","
   spaces
   body <- cterm
@@ -107,12 +126,12 @@ annotation =
 
 arrow :: Parser CTerm
 arrow =
-  spaces >> string "->" >> spaces >> cterm
+  spaces >> string "->" >> spaces >> modifyState ("_":) >> cterm
 
 lambda :: Parser CTerm
 lambda =
   withParens $ do
-    string "\\"
+    tryEach [ string "\\", string "fun" ]
     spaces
     xs <- reverse <$> many1 (validIdent <* spaces)
     env <- getState
@@ -132,3 +151,37 @@ ctermHead = try lambda <|> Inf <$> termHead
 
 parseTerm :: String -> Either ParseError ITerm
 parseTerm = parse termExpr
+
+parseCTerm :: String -> Either ParseError CTerm
+parseCTerm = parse cterm
+
+--------------
+-- Programs --
+--------------
+
+comment :: Parser ()
+comment = string "--" >> manyTill anyChar endOfLine >> pure ()
+
+letExpr :: Parser Stmt
+letExpr =
+  Let
+    <$ string "def" <* spaces
+    <*> validIdent <* spaces <* string ":=" <* spaces
+    <*> termExpr <* spaces <* string "end"
+
+stmt :: Parser Stmt
+stmt =
+  tryEach
+    [ letExpr
+    , Expr <$> termExpr
+    ]
+
+spacesAndComments :: Parser ()
+spacesAndComments = spaces >> skipMany (comment >> spaces)
+
+program :: Parser Program
+program =
+  Program <$ spacesAndComments <*> many (stmt <* spacesAndComments)
+
+parseProgram :: String -> Either ParseError Program
+parseProgram = parse program

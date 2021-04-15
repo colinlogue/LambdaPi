@@ -4,21 +4,26 @@ module LambdaPi.Typecheck where
 
 import LambdaPi.Data.Context
 import LambdaPi.Data.Term
-import Data.Functor (void)
 import Control.Monad (unless)
 import LambdaPi.Data.Name
 import LambdaPi.Eval
+import Data.Bifunctor
+import LambdaPi.Printer
 
 
-
-type Result a = Either String a
+type TypeError = [String]
+type Result a = Either TypeError a
 
 throwError :: String -> Result a
-throwError = Left
+throwError = first (:[]) . Left
 
 fromMaybe :: String -> Maybe a -> Result a
 fromMaybe _  (Just x) = Right x
-fromMaybe msg Nothing = Left msg
+fromMaybe msg Nothing = Left [msg]
+
+infix 2 #
+(#) :: Result a -> String -> Result a
+r # msg = first (msg:) r
 
 
 typeI :: Int -> Context -> ITerm -> Result Type
@@ -33,25 +38,30 @@ typeI _ g (Free x) =
 typeI i g (e :@: e') =
   typeI i g e >>= \case
     VPi t t' -> typeC i g e' t >> pure (t' (evalC e' []))
+    _ -> throwError "illegal application"
 typeI i g (Pi p p') =
   do
     typeC i g p VStar
+      # printCTerm p ++ " does not have type *"
     let t = evalC p []
     typeC (i + 1) ((Local i,t):g) (substC 0 (Free (Local i)) p') VStar
+      # printCTerm p' ++ " does not have type *"
     pure VStar
 typeI _ _ (Bound _) = throwError "bound variable outside of context"
 
 typeC :: Int -> Context -> CTerm -> Type -> Result ()
 typeC i g (Inf e) v =
   typeI i g e >>= \v' ->
-  unless (quote 0 v == quote 0 v') (throwError "type mismatch")
+  unless (quote 0 v == quote 0 v') $
+    throwError $ "type mismatch: " ++ printTerm e ++ " has inferred type "
+      ++ printValue 0 v' ++ ", which does not match " ++ printValue 0 v
 typeC i g (Lam e) (VPi t t') =
   typeC
     (i + 1)
     ((Local i, t) : g)
     (substC 0 (Free (Local i)) e)
     (t' (vfree (Local i)))
-typeC _ _ _ _ = throwError "type mismatch"
+typeC _ _ (Lam _) _ = throwError "lambda does not have pi type"
 
 
 

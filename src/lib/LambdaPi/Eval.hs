@@ -36,3 +36,9 @@ boundfree :: Int -> Name -> ITerm
 boundfree i (Quote k) = Bound (i - k - 1)
 boundfree _ x         = Free x
 
+
+instance Eq Value where
+  x == y = quote 0 x == quote 0 y
+
+instance Show Value where
+  show = show . quote 0
