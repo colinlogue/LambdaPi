@@ -1,4 +1,4 @@
-module LambdaPi.Tests.Parsing where
+module Tests.LambdaPi.Parsing where
 
 import LambdaPi.Data.Name
 import LambdaPi.Data.Term

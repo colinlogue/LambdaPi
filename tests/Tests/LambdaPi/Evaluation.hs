@@ -1,4 +1,4 @@
-module LambdaPi.Tests.Evaluation where
+module Tests.LambdaPi.Evaluation where
 
 import LambdaPi.Data.Context
 import LambdaPi.Data.Term

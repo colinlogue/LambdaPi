@@ -30,9 +30,20 @@ extra-source-files:
 
 library
   exposed-modules:
+    GDTLC.Data.Context,
+    GDTLC.Data.Env,
+    GDTLC.Data.Name,
+    GDTLC.Data.Program,
+    GDTLC.Data.Term,
+    GDTLC.Eval,
+    GDTLC.Interpreter,
+    GDTLC.Parser,
+    GDTLC.Printer,
+    GDTLC.Typecheck,
     LambdaPi.Data.Context,
     LambdaPi.Data.Env,
     LambdaPi.Data.Name,
+    LambdaPi.Data.Program,
     LambdaPi.Data.Term,
     LambdaPi.Eval,
     LambdaPi.Interpreter,
@@ -83,9 +94,16 @@ test-suite tests
     Main.hs
   
   other-modules:
-    LambdaPi.Tests.Evaluation,
-    LambdaPi.Tests.Parsing,
-    LambdaPi.Tests.Typechecking
+    Tests.GDTLC,
+    Tests.GDTLC.Parsing,
+    Tests.GDTLC.Prelude,
+    Tests.GDTLC.Shared,
+    Tests.GDTLC.Typechecking,
+    Tests.LambdaPi,
+    Tests.LambdaPi.Evaluation,
+    Tests.LambdaPi.Parsing,
+    Tests.LambdaPi.Typechecking,
+    Tests.Utils
 
   hs-source-dirs:
     tests
@@ -102,7 +120,7 @@ test-suite tests
     relude (Relude as Prelude),
     relude
 
-executable LambdaPiInterp
+executable interp
   main-is:
     Main.hs
   

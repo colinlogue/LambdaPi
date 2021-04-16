@@ -1,6 +1,12 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main where
 
-import LambdaPi.Interpreter
+import GDTLC.Interpreter
+import System.Environment
 
 main :: IO ()
-main = repl
+main =
+  getArgs >>= \case
+    [] -> putStrLn "no filepath given"
+    path:_ -> interpFile path

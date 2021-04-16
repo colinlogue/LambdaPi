@@ -1,11 +1,9 @@
 module Main where
 
-import LambdaPi.Tests.Parsing
-import LambdaPi.Tests.Typechecking
-import LambdaPi.Tests.Evaluation
+import qualified Tests.LambdaPi
+import qualified Tests.GDTLC
 
 main :: IO ()
 main = do
-  parseTests
-  evalTests
-  typecheckingTests
+  Tests.LambdaPi.runAll
+  Tests.GDTLC.runAll

@@ -1,4 +1,4 @@
-module LambdaPi.Tests.Typechecking where
+module Tests.LambdaPi.Typechecking where
 
 import LambdaPi.Data.Term
 import LambdaPi.Data.Name
